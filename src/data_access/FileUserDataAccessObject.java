@@ -2,18 +2,23 @@ package data_access;
 
 import entity.User;
 import entity.UserFactory;
+import use_case.clear_users.ClearUserDataAccessInterface;
 import use_case.login.LoginUserDataAccessInterface;
 import use_case.signup.SignupUserDataAccessInterface;
 
 import java.io.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class FileUserDataAccessObject implements SignupUserDataAccessInterface, LoginUserDataAccessInterface {
 
-    private final File csvFile;
+import static java.nio.file.Files.newBufferedReader;
+
+public class FileUserDataAccessObject implements SignupUserDataAccessInterface, LoginUserDataAccessInterface, ClearUserDataAccessInterface {
+
+    private File csvFile;
 
     private final Map<String, Integer> headers = new LinkedHashMap<>();
 
@@ -56,6 +61,12 @@ public class FileUserDataAccessObject implements SignupUserDataAccessInterface, 
     @Override
     public void save(User user) {
         accounts.put(user.getName(), user);
+        //accounts.remove(user);
+        this.save();
+    }
+    @Override
+    public void clear(User user) {
+        accounts.remove(user);
         this.save();
     }
 
@@ -63,6 +74,62 @@ public class FileUserDataAccessObject implements SignupUserDataAccessInterface, 
     public User get(String username) {
         return accounts.get(username);
     }
+
+    @Override
+    public ArrayList<String> clearallusers() {
+        ArrayList<String> deletedUsers = new ArrayList<String>();
+        BufferedReader reader;
+        BufferedWriter writer;
+        try {
+            reader = new BufferedReader(new FileReader(csvFile));
+            String line;
+            line = reader.readLine();
+
+            while ((line = reader.readLine()) != null) {
+                String[] values = line.split(",");
+                System.out.println(values[0]);
+                deletedUsers.add(values[0]);
+            }
+            reader.close();
+
+            writer = new BufferedWriter(new FileWriter(csvFile));
+            writer.write("username,password,creation_time\n");
+            writer.close();
+
+        } catch (IOException e) {
+            new RuntimeException(e);
+        }
+        return deletedUsers;
+    }
+/*
+    @Override
+    public ArrayList<String> getUsers(String csvPath) throws IOException {
+        ArrayList<String> users = new ArrayList<>();
+        for (User user : accounts.values()) {
+            String line = user.getName();
+            users.add(line);
+        }
+        if (csvFile.delete()) {
+            csvFile = new File(csvPath);
+            headers.put("username", 0);
+            headers.put("password", 1);
+            headers.put("creation_time", 2);
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(csvFile))) {
+                String header = reader.readLine();
+
+                // For later: clean this up by creating a new Exception subclass and handling it in the UI.
+                assert header.equals("username,password,creation_time");
+                reader.close();
+            }
+        }
+        else
+        {
+            System.out.println("Failed to Delete File.");
+        }
+        return users;
+    }
+    */
 
     private void save() {
         BufferedWriter writer;
@@ -85,6 +152,15 @@ public class FileUserDataAccessObject implements SignupUserDataAccessInterface, 
         }
     }
 
+    @Override
+    public ArrayList<User> getUsers() {
+        return null;
+    }
+
+    @Override
+    public ArrayList<String> getUsers(String csvPath) throws IOException {
+        return null;
+    }
 
     /**
      * Return whether a user exists with username identifier.
